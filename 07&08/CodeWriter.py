@@ -1,9 +1,10 @@
 import Parser
 
 global GUA_END_SUFFIX
-global PUSH_POP_SUFFIX
+global LABEL_SUFFIX
+
 GUA_END_SUFFIX = 0
-PUSH_POP_SUFFIX = 0
+LABEL_SUFFIX = 0
 
 
 # SP 指针后移
@@ -96,7 +97,6 @@ def 出栈两个数运算后放回结果到第一个位置(operator):
     write_line('\n// OPERATION')
     pop('D')
     pop('M')
-
     # 是否需要判断真假的操作
     if operator in Parser.瓜operator:
         write_gua(operator)
@@ -123,47 +123,38 @@ def write_arithmetic(command):
         raise ValueError('没有这样的运算')
 
 
-def push_util(number, base_address_register_name, value_address):
-    util(number, base_address_register_name, value_address, 'PUSH')
-    write_format_a_location('store', value_address, PUSH_POP_SUFFIX)
-    write_line('A = M')
+def pop_util(offset, base):
+    # 获取真实的变量地址
+    write_line('@%s' % base)
     write_line('D = M')
-    push_d_in_stack()
-    next_sp()
-
-
-def pop_util(number, base_address_register_name, value_address):
-    util(number, base_address_register_name, value_address, 'POP')
-    # 从栈中取出栈顶值放到 @value_address 地址所对应的 RAM 中
+    write_line('@%s' % offset)
+    write_line('D = D + A')
+    # 把地址存到 RAM[5] 里
+    write_line('@5')
+    write_line('M = D')
+    # pop
     pop('D')
-    write_format_a_location('store', value_address, PUSH_POP_SUFFIX)
+    write_line("@5")
     write_line('A = M')
     write_line('M = D')
-
-
-def util(number, base_address_register_name, value_address, type):
-    write_line('@%s' % base_address_register_name)
-    write_line('D = M')
-    # 局部变量的地址存放在 value_address 中, 初始地址为 base_address_register_name
-    write_format_a_location('store', value_address, PUSH_POP_SUFFIX)
-    write_line('M = D')
-    write_line('@%s' % number)
-    write_line('D = A')
-    write_format_jump_location('LOOP', value_address, PUSH_POP_SUFFIX)
-    write_format_a_location('GO', type, PUSH_POP_SUFFIX)
-    write_line('D;JEQ')
-    # 获得下一个局部变量
-    write_line('D = D - 1')
-    write_format_a_location('store', value_address, PUSH_POP_SUFFIX)
-    write_line('M = M + 1')
-    write_format_a_location('LOOP', value_address, PUSH_POP_SUFFIX)
-    write_line('0;JMP')
-    write_format_jump_location('GO', type, PUSH_POP_SUFFIX)
 
 
 def push_temp_or_pointer_util(offset, base):
     number = str(int(base) + int(offset))
     write_line('@%s' % number)
+    write_line('D = M')
+    push_d_in_stack()
+    next_sp()
+
+
+# base 为 LCL ARG 等内存段的地址
+def push_util(offset, base):
+    # 获取真实的变量地址
+    write_line('@%s' % base)
+    write_line('D = M')
+    write_line('@%s' % offset)
+    write_line('A = D + A')
+    # push
     write_line('D = M')
     push_d_in_stack()
     next_sp()
@@ -181,15 +172,15 @@ def push_value_by_type(value, type):
         push_number_in_stack(value)
         next_sp()
     elif type == 'local':
-        push_util(value, 'LCL', 'local')
+        push_util(value, 'LCL')
     elif type == 'argument':
-        push_util(value, 'ARG', 'argument')
+        push_util(value, 'ARG')
     elif type == 'static':
         push_static_util(value)
     elif type == 'this':
-        push_util(value, 'THIS', 'this')
+        push_util(value, 'THIS')
     elif type == 'that':
-        push_util(value, 'THAT', 'that')
+        push_util(value, 'THAT')
     elif type == 'pointer':
         push_temp_or_pointer_util(value, 3)
     elif type == 'temp':
@@ -214,15 +205,15 @@ def pop_value_by_type(value, type):
     if type == 'constant':
         raise ValueError('不存在这样的 pop 操作')
     elif type == 'local':
-        pop_util(value, 'LCL', 'local')
+        pop_util(value, 'LCL')
     elif type == 'argument':
-        pop_util(value, 'ARG', 'argument')
+        pop_util(value, 'ARG')
     elif type == 'static':
         pop_static_util(value)
     elif type == 'this':
-        pop_util(value, 'THIS', 'this')
+        pop_util(value, 'THIS')
     elif type == 'that':
-        pop_util(value, 'THAT', 'that')
+        pop_util(value, 'THAT')
     elif type == 'pointer':
         pop_temp_or_pointer_util(value, 3)
     elif type == 'temp':
@@ -230,7 +221,6 @@ def pop_value_by_type(value, type):
 
 
 def write_push_pop(command):
-    global PUSH_POP_SUFFIX
     type = command.arg1
     value = command.arg2
     if command.type == 'C_PUSH':
@@ -240,7 +230,45 @@ def write_push_pop(command):
         write_line('// pop')
         pop_value_by_type(value, type)
 
-    PUSH_POP_SUFFIX += 1
+
+def write_init():
+    # 初始化堆栈指针
+    write_line('@256')
+    write_line('D = A')
+    write_line('@SP')
+    write_line('M = D')
+    # TODO call sys.init
+
+
+def write_label(command):
+    global LABEL_SUFFIX
+    LABEL_SUFFIX += 1
+    write_format_jump_location('label', command.arg1, LABEL_SUFFIX)
+
+
+def write_if(command):
+    dest = command.arg1
+    pop('D')
+    write_format_a_location('label', dest, LABEL_SUFFIX)
+    write_line('D;JNE')
+
+
+def write_goto(command):
+    dest = command.arg1
+    write_format_a_location('label', dest, LABEL_SUFFIX)
+    write_line('0;JMP')
+
+
+def write_call():
+    pass
+
+
+def write_return():
+    pass
+
+
+def write_function():
+    pass
 
 
 def write_line(content):
