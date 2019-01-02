@@ -1,10 +1,7 @@
 import Parser
 
 global GUA_END_SUFFIX
-global LABEL_SUFFIX
-
 GUA_END_SUFFIX = 0
-LABEL_SUFFIX = 0
 
 
 # SP 指针后移
@@ -39,6 +36,15 @@ def push_d_in_stack():
     write_line('@SP')
     write_line('A = M')
     write_line('M = D')
+
+
+def push_x_in_stack(x):
+    write_line('@%s' % x)
+    write_line('D = M')
+    write_line('@SP')
+    write_line('A = M')
+    write_line('M = D')
+    next_sp()
 
 
 # 保存栈中数据到 holder 中
@@ -233,42 +239,126 @@ def write_push_pop(command):
 
 def write_init():
     # 初始化堆栈指针
+    write_line('// init')
     write_line('@256')
     write_line('D = A')
     write_line('@SP')
     write_line('M = D')
-    # TODO call sys.init
+    write_line('@Sys.init')
+    write_line('0;JMP')
 
 
 def write_label(command):
-    global LABEL_SUFFIX
-    LABEL_SUFFIX += 1
-    write_format_jump_location('label', command.arg1, LABEL_SUFFIX)
+    write_line('// label')
+    dest = command.arg1
+    write_line('(%s)' % dest)
 
 
 def write_if(command):
+    write_line('// if')
     dest = command.arg1
     pop('D')
-    write_format_a_location('label', dest, LABEL_SUFFIX)
+    write_line('@%s' % dest)
     write_line('D;JNE')
 
 
 def write_goto(command):
+    write_line('// go')
     dest = command.arg1
-    write_format_a_location('label', dest, LABEL_SUFFIX)
+    write_line('@%s' % dest)
     write_line('0;JMP')
 
 
-def write_call():
-    pass
+global CALL_SUFFIX
+CALL_SUFFIX = 0
+
+
+def write_call(command):
+    write_line('// call')
+    global CALL_SUFFIX
+    func_name = command.arg1
+    func_arg_num = int(command.arg2)
+    # push return_address
+    write_format_a_location('returnAddress', func_name, CALL_SUFFIX)
+    write_line('D = A')
+    push_d_in_stack()
+    next_sp()
+    push_x_in_stack('LCL')
+    push_x_in_stack('ARG')
+    push_x_in_stack('THIS')
+    push_x_in_stack('THAT')
+    # ARG = SP - n - 5
+    write_line('@%s' % func_arg_num)
+    write_line('D = A')
+    write_line('@5')
+    write_line('D = D + A')
+    write_line('@SP')
+    write_line('D = M - D')
+    write_line('@ARG')
+    write_line('M = D')
+    # LCL = SP
+    write_line('@SP')
+    write_line('D = M')
+    write_line('@LCL')
+    write_line('M = D')
+    # go F()
+    write_line('@%s' % func_name)
+    write_line('0;JMP')
+    write_format_jump_location('returnAddress', func_name, CALL_SUFFIX)
+    CALL_SUFFIX += 1
 
 
 def write_return():
-    pass
+    write_line('// return')
+    write_line('@LCL')
+    write_line('D = M')
+    # RAM[6] 存放 local 段地址, 用它当成基地址返回调用者的帧栈
+    write_line('@6')
+    write_line('M = D')
+    # 调用者获取返回值
+    pop('D')
+    write_line('@ARG')
+    write_line('A = M')
+    write_line('M = D')
+    # 恢复调用者 SP
+    write_line('@ARG')
+    write_line('D = M + 1')
+    write_line('@SP')
+    write_line('M = D')
+    # 恢复调用者寄存器值
+    recover_frame(1, 'THAT')
+    recover_frame(2, 'THIS')
+    recover_frame(3, 'ARG')
+    recover_frame(4, 'LCL')
+    # 返回
+    write_line('@5')
+    write_line('D = A')
+    write_line('@6')
+    write_line('A = M - D')
+    write_line('0;JMP')
 
 
-def write_function():
-    pass
+def recover_frame(offset, name):
+    write_line('@%s' % offset)
+    write_line('D = A')
+    write_line('@6')
+    write_line('A = M - D')
+    write_line('D = M')
+    write_line('@%s' % name)
+    write_line('M = D')
+
+
+def write_function(command):
+    write_line('// function')
+    func_name = command.arg1
+    func_lcl_num = int(command.arg2)
+    write_line('(%s)' % func_name)
+    for n in range(func_lcl_num):
+        write_line('@LCL')
+        write_line('D = M')
+        write_line('@%s' % n)
+        write_line('A = A + D')
+        write_line('M = 0')
 
 
 def write_line(content):

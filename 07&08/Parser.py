@@ -44,11 +44,11 @@ class Command(object):
             return 'C_IF'
         elif self.content.find('goto') >= 0:
             return 'C_GOTO'
-        elif self.content.fine('function') > 0:
+        elif self.content.find('function') >= 0:
             return 'C_FUNCTION'
-        elif self.content.fine('call') > 0:
+        elif self.content.find('call') >= 0:
             return 'C_CALL'
-        elif self.content.fine('return') > 0:
+        elif self.content.find('return') >= 0:
             return 'C_RETURN'
 
 

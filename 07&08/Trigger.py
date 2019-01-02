@@ -16,8 +16,8 @@ def extract_asm_code(command):
     elif command.type is 'C_CALL':
         CodeWriter.write_call(command)
     elif command.type is 'C_RETURN':
-        CodeWriter.write_return(command)
-    elif command.type is 'FUNCTION':
+        CodeWriter.write_return()
+    elif command.type is 'C_FUNCTION':
         CodeWriter.write_function(command)
     print('arg1:' + command.arg1 + '-----arg2:' + command.arg2)
 
