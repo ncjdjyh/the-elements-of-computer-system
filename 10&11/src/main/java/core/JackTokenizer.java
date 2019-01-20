@@ -1,7 +1,6 @@
 package core;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import entity.BuiltInType;
 import entity.Token;
 import entity.TokenType;
 import org.apache.commons.io.FileUtils;
@@ -17,13 +16,18 @@ import java.util.stream.Collectors;
 import static org.apache.commons.lang3.StringUtils.*;
 import static org.apache.commons.lang3.StringUtils.SPACE;
 
-
 public class JackTokenizer {
     /**
      * @Auther: ncjdjyh
      * @Date: 2019/1/5 22:19
      * @Description: 子元转换器
      */
+    private File file;
+    private List<Token> tokenList;
+    private int currentTokenIndex;
+    private Token currentToken;
+    public static JackTokenizer singleton;
+
     private static final int MIN_INT = 0;
     private static final int MAX_INT = 0x7FFF;
     private static final String IDENTIFIER = "^[a-zA-Z_]{1}[a-zA-Z0-9_]*";
@@ -33,25 +37,18 @@ public class JackTokenizer {
     private static final String MULT_API_START_COMMENT = "/**";
     private static final String MULT_END_COMMENT = "*/";
 
+    public static HashSet<String> keywordSet;
+    public static HashSet<String> symbolSet;
+
     public static final String[] KEYWORDS =
             {"class", "constructor",
                     "function", "method", "field", "static", "var", "int", "char",
                     "boolean", "void", "true", "false", "null", "this", "let", "do",
                     "if", "else", "while", "return"};
-
     public static final String[] SYMBOLS =
             {"{", "}", "(", ")", "[", "]", ".", ",", ";",
                     "+", "-", "*", "/", "&", "|", "<", ">", "=", "~"};
 
-    public static HashSet<String> keywordSet;
-    public static HashSet<String> symbolSet;
-
-    private File file;
-    private List<Token> tokenList;
-    private int currentTokenIndex;
-    private Token currentToken;
-
-    // 静态初始化
     static {
         keywordSet = new HashSet<>();
         keywordSet.addAll(Arrays.asList(KEYWORDS));
@@ -59,7 +56,18 @@ public class JackTokenizer {
         symbolSet.addAll(Arrays.asList(SYMBOLS));
     }
 
-    public JackTokenizer(File file) {
+    public static JackTokenizer getInstance(File file) {
+        if (singleton == null) {
+            singleton = new JackTokenizer(file);
+        }
+        return singleton;
+    }
+
+    public static JackTokenizer getInstance() {
+        return Objects.requireNonNull(singleton);
+    }
+
+    private JackTokenizer(File file) {
         setup();
         extractTokenList(file);
     }
@@ -123,8 +131,8 @@ public class JackTokenizer {
         return commandLines;
     }
 
+    /* TODO 用很 tricky 的方式解决形如 ""content"" 的字符串问题 感觉还是要自己一行一行的来读, 便于控制~ */
     private static String change(String command) {
-        // TODO 用很 tricky 的方式解决形如 ""content"" 的字符串问题 感觉还是要自己一行一行的来读, 便于控制~
         Pattern p = Pattern.compile("\"(.*)\"");
         Matcher m = p.matcher(command);
         while (m.find()) {
@@ -153,8 +161,8 @@ public class JackTokenizer {
 
     private static String handleInnerLineComment(String command) {
         // 去除行内注释
-        if (command.contains("//")) {
-            command = StringUtils.substringBefore(command, "//");
+        if (command.contains(SINGLELINE_COMMENT)) {
+            command = StringUtils.substringBefore(command, SINGLELINE_COMMENT);
         }
         return command;
     }
@@ -174,7 +182,7 @@ public class JackTokenizer {
     }
 
     /* 返回一个二元组 pair(tokenType 和他所对应的值) */
-    public static Pair<TokenType, Object> tokenType(String content) {
+    public static Pair<TokenType, String> tokenType(String content) {
         if (keywordSet.contains(content)) {
             return Pair.with(TokenType.KEYWORD, content);
         } else if (symbolSet.contains(content)) {
@@ -182,15 +190,23 @@ public class JackTokenizer {
         } else if (content.matches("\\d+")) {
             int cst = Integer.parseInt(content);
             if (cst < MIN_INT || cst > MAX_INT) {
-                throw new RuntimeException("int constant is out of range at line " );
+                throw new RuntimeException("int constant is out of range at line ");
             }
-            return Pair.with(TokenType.INT_CONST, Integer.valueOf(content));
+            return Pair.with(TokenType.INT_CONST, content);
         } else if (content.matches(IDENTIFIER)) {
             return Pair.with(TokenType.IDENTIFIER, content);
         } else if (content.matches(STRING_CONST)) {
             return Pair.with(TokenType.STRING_CONST, content);
         } else {
             throw new RuntimeException("Unknow token type!" + "\n");
+        }
+    }
+
+    public static BuiltInType getBuiltInType(String content) {
+        if (content.matches("field|static")) {
+            return BuiltInType.CLASS_VAR_DEC;
+        } else {
+            return BuiltInType.NORMAL;
         }
     }
 }

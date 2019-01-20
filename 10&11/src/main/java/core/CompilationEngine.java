@@ -1,14 +1,18 @@
 package core;
 
+import entity.BuiltInType;
 import entity.Token;
+import org.apache.commons.lang3.StringUtils;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
+import entity.CompileFactory;
 import util.FileUtil;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Objects;
 
 public class CompilationEngine {
     /**
@@ -22,30 +26,49 @@ public class CompilationEngine {
     private Document astDocument;
     // 抽象语法树根节点
     private Element root;
+    private static CompilationEngine singleton;
 
-    public CompilationEngine(JackTokenizer tokenizer) {
-        setup(tokenizer);
-        generateAstXML();
+    private CompilationEngine(JackTokenizer tokenizer) {
+        this.tokenizer = tokenizer;
     }
 
-    private void generateAstXML() {
+    public static CompilationEngine getInstance(JackTokenizer tokenizer) {
+        if (singleton == null) {
+            singleton = new CompilationEngine(tokenizer);
+        }
+        return singleton;
+    }
+
+    public static CompilationEngine getInstance() {
+        return Objects.requireNonNull(singleton);
+    }
+
+    public void generateAstXML() {
+        compileClass();
         while (tokenizer.hasMoreTokens()) {
             tokenizer.advance();
-            Token currentToken = tokenizer.getCurrentToken();
-            createNode(currentToken);
+            Token t = tokenizer.getCurrentToken();
+            var b = t.getBuiltInType();
+            if (b == BuiltInType.NORMAL) {
+                createNode(t);
+            } else {
+                CompileFactory.executeCompile(t.getBuiltInType());
+            }
         }
     }
 
-    private void setup(JackTokenizer tokenizer) {
-        this.tokenizer = tokenizer;
-        astDocument = DocumentHelper.createDocument();
-        root = astDocument.addElement("tokens");
-    }
-
-    private void createNode(Token token) {
+    /* 在 element 下创建子节点 */
+    public void createNode(Token token, Element element) {
         var elementName = token.getTokenType().getAlias();
         var elementText = token.getContent();
         elementText = exchangeXMLBuiltCharacter(elementText);
+        element.addElement(elementName).setText(elementText);
+    }
+
+    /* 在根节点下创建子节点 */
+    public void createNode(Token token) {
+        var elementName = token.getTokenType().getAlias();
+        var elementText = token.getContent();
         root.addElement(elementName).setText(elementText);
     }
 
@@ -69,5 +92,63 @@ public class CompilationEngine {
             case ("&") : return "&amp";
             default: return character;
         }
+    }
+
+    private void compileClass() {
+        astDocument = DocumentHelper.createDocument();
+        root = astDocument.addElement("class");
+    }
+
+    public void compileClassVarDec() {
+        // initial classVarDec
+        var classVarDec = root.addElement("classVarDec");
+        var token = tokenizer.getCurrentToken();
+        // add elements
+        while (!StringUtils.equals(token.getValue(), ";")) {
+            createNode(token, classVarDec);
+            tokenizer.advance();
+            token = tokenizer.getCurrentToken();
+        }
+        createNode(token, classVarDec);
+    }
+
+    private void compileSubroutine() {
+
+    }
+
+    private void compileStatements() {
+
+    }
+
+    private void compileDo() {
+
+    }
+
+    private void compileLet() {
+
+    }
+
+    private void compileWhile() {
+
+    }
+
+    private void compileReturn() {
+
+    }
+
+    private void compileIf() {
+
+    }
+
+    private void compileExpression() {
+
+    }
+
+    private void compileTerm() {
+
+    }
+
+    private void compileExpressionList() {
+
     }
 }

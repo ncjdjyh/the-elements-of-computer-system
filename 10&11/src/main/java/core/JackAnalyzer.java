@@ -18,6 +18,7 @@ public class JackAnalyzer {
 
     public static void handleResources(String directoryName) {
         File file = new File(directoryName.trim());
+        // 只处理以 .jack 结尾的文件
         if (file.exists()) {
             if (file.isFile()) {
                 if (!isTargetFile(file)) {
@@ -26,7 +27,6 @@ public class JackAnalyzer {
                 }
                 transformation(file);
             } else if (file.isDirectory()) {
-                // 只过滤出以.jack结尾的文件
                 Arrays.asList(file.listFiles()).stream()
                         .filter(JackAnalyzer::isTargetFile)
                         .forEach(JackAnalyzer::transformation);
@@ -35,9 +35,11 @@ public class JackAnalyzer {
     }
 
     public static void transformation(File file) {
-        JackTokenizer tokenizer = new JackTokenizer(file);
-        CompilationEngine engine = new CompilationEngine(tokenizer);
+        JackTokenizer tokenizer = JackTokenizer.getInstance(file);
+        CompilationEngine engine = CompilationEngine.getInstance(tokenizer);
+        engine.generateAstXML();
         engine.printAstFile();
+        System.out.println("done");
     }
 
     private static boolean isTargetFile(File file) {
