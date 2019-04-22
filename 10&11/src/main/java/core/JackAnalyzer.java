@@ -1,23 +1,27 @@
 package core;
 
+
+import cn.hutool.core.io.file.FileReader;
+
 import java.io.File;
 import java.util.Arrays;
 
 public class JackAnalyzer {
     /**
-     * @Auther: ncjdjyh
+     * @Author: ncjdjyh
      * @Date: 2019/1/5 22:19
      * @Description: 建立和调用其他模块
      */
     public static final String SOURCE_FIX = ".jack";
-    private static final String RESOURCES_LOCATION = "C:\\Users\\ncjdj\\Desktop\\10";
+    private static final String RESOURCES_LOCATION = "test.jack";
 
     public static void main(String[] args) {
         handleResources(RESOURCES_LOCATION);
     }
 
     public static void handleResources(String directoryName) {
-        File file = new File(directoryName.trim());
+        FileReader fileReader = new FileReader(directoryName.trim());
+        var file = fileReader.getFile();
         // 只处理以 .jack 结尾的文件
         if (file.exists()) {
             if (file.isFile()) {

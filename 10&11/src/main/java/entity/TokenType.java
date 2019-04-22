@@ -1,5 +1,6 @@
 package entity;
 
+/* 字符类型 */
 public enum TokenType {
     KEYWORD("keyword"), SYMBOL("symbol"),
     IDENTIFIER("identifier"), INT_CONST("integerConst"),

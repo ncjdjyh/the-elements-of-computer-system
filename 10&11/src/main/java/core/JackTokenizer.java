@@ -1,6 +1,8 @@
 package core;
 
+import cn.hutool.core.lang.Assert;
 import entity.BuiltInType;
+import entity.Keyword;
 import entity.Token;
 import entity.TokenType;
 import org.apache.commons.io.FileUtils;
@@ -8,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.javatuples.Pair;
 
 import java.io.*;
+import java.security.Key;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,7 +21,7 @@ import static org.apache.commons.lang3.StringUtils.SPACE;
 
 public class JackTokenizer {
     /**
-     * @Auther: ncjdjyh
+     * @Author: ncjdjyh
      * @Date: 2019/1/5 22:19
      * @Description: 子元转换器
      */
@@ -41,13 +44,10 @@ public class JackTokenizer {
     public static HashSet<String> symbolSet;
 
     public static final String[] KEYWORDS =
-            {"class", "constructor",
-                    "function", "method", "field", "static", "var", "int", "char",
-                    "boolean", "void", "true", "false", "null", "this", "let", "do",
-                    "if", "else", "while", "return"};
+            {"class", "constructor", "function", "method", "field", "static", "var", "int", "char", "boolean", "void",
+                    "true", "false", "null", "this", "let", "do", "if", "else", "while", "return"};
     public static final String[] SYMBOLS =
-            {"{", "}", "(", ")", "[", "]", ".", ",", ";",
-                    "+", "-", "*", "/", "&", "|", "<", ">", "=", "~"};
+            {"{", "}", "(", ")", "[", "]", ".", ",", ";", "+", "-", "*", "/", "&", "|", "<", ">", "=", "~"};
 
     static {
         keywordSet = new HashSet<>();
@@ -70,6 +70,54 @@ public class JackTokenizer {
     private JackTokenizer(File file) {
         setup();
         extractTokenList(file);
+    }
+
+    public static Keyword keyword(String content) {
+        if (content.equalsIgnoreCase("class")) {
+            return Keyword.CLASS;
+        } else if (content.equalsIgnoreCase("method")) {
+            return Keyword.METHOD;
+        } else if (content.equalsIgnoreCase("int")) {
+            return Keyword.INT;
+        }  else if (content.equalsIgnoreCase("function")) {
+            return Keyword.FUNCTION;
+        } else if (content.equalsIgnoreCase("boolean")) {
+            return Keyword.BOOLEAN;
+        } else if (content.equalsIgnoreCase("constructor")) {
+            return Keyword.CONSTRUCTOR;
+        } else if (content.equalsIgnoreCase("char")) {
+            return Keyword.CHAR;
+        } else if (content.equalsIgnoreCase("void")) {
+            return Keyword.VOID;
+        } else if (content.equalsIgnoreCase("var")) {
+            return Keyword.VAR;
+        } else if (content.equalsIgnoreCase("static")) {
+            return Keyword.STATIC;
+        } else if (content.equalsIgnoreCase("field")) {
+            return Keyword.FIELD;
+        } else if (content.equalsIgnoreCase("let")) {
+            return Keyword.LET;
+        } else if (content.equalsIgnoreCase("do")) {
+            return Keyword.DO;
+        } else if (content.equalsIgnoreCase("if")) {
+            return Keyword.IF;
+        } else if (content.equalsIgnoreCase("else")) {
+            return Keyword.ELSE;
+        } else if (content.equalsIgnoreCase("while")) {
+            return Keyword.WHILE;
+        } else if (content.equalsIgnoreCase("return")) {
+            return Keyword.RETURN;
+        } else if (content.equalsIgnoreCase("false")) {
+            return Keyword.FALSE;
+        } else if (content.equalsIgnoreCase("true")) {
+            return Keyword.TRUE;
+        } else if (content.equalsIgnoreCase("null")) {
+            return Keyword.NULL;
+        } else if (content.equalsIgnoreCase("this")) {
+            return Keyword.THIS;
+        } else {
+            throw new RuntimeException("错误的关键字");
+        }
     }
 
     private void extractTokenList(File file) {
@@ -202,11 +250,37 @@ public class JackTokenizer {
         }
     }
 
-    public static BuiltInType getBuiltInType(String content) {
-        if (content.matches("field|static")) {
-            return BuiltInType.CLASS_VAR_DEC;
-        } else {
-            return BuiltInType.NORMAL;
-        }
-    }
+//    public static BuiltInType getBuiltInType(Object keyword, String content) {
+//        if (keyword == Keyword.STATIC || keyword == Keyword.FIELD) {
+//            return BuiltInType.CLASS_VAR_DEC;
+//        } else if (keyword == Keyword.CLASS) {
+//            return BuiltInType.CLASS;
+//        }  else if (Keyword.DO == keyword) {
+//            return BuiltInType.DO;
+//        }  else if (Keyword.RETURN == keyword) {
+//            return BuiltInType.RETURN;
+//        } else if (Keyword.IF == keyword) {
+//            return BuiltInType.IF;
+//        } else if (Keyword.WHILE == keyword) {
+//            return BuiltInType.WHILE;
+//        } else if (Keyword.LET == keyword) {
+//            return BuiltInType.LET;
+//        } else if () {
+//            return BuiltInType.EXPRESSION;
+//        } else if () {
+//            return BuiltInType.EXPRESSION_LIST;
+//        } else if () {
+//            return BuiltInType.PARAMETER_LIST;
+//        } else if () {
+//            return BuiltInType.SUBROUTINE;
+//        } else if () {
+//            return BuiltInType.STATEMENTS;
+//        } else if () {
+//            return BuiltInType.TERM;
+//        } else if () {
+//            return BuiltInType.VAR_DEC;
+//        } else {
+//            throw new RuntimeException("不支持的关键字");
+//        }
+//    }
 }

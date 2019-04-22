@@ -16,7 +16,7 @@ import java.util.Objects;
 
 public class CompilationEngine {
     /**
-     * @Auther: ncjdjyh
+     * @Author: ncjdjyh
      * @Date: 2019/1/5 22:19
      * @Description: 自顶向下递归语法分析器
      */
@@ -44,16 +44,11 @@ public class CompilationEngine {
     }
 
     public void generateAstXML() {
-        compileClass();
+        createRoot();
         while (tokenizer.hasMoreTokens()) {
             tokenizer.advance();
             Token t = tokenizer.getCurrentToken();
-            var b = t.getBuiltInType();
-            if (b == BuiltInType.NORMAL) {
-                createNode(t);
-            } else {
-                CompileFactory.executeCompile(t.getBuiltInType());
-            }
+            CompileFactory.executeCompile(t);
         }
     }
 
@@ -66,7 +61,7 @@ public class CompilationEngine {
     }
 
     /* 在根节点下创建子节点 */
-    public void createNode(Token token) {
+    public void compileNormal(Token token) {
         var elementName = token.getTokenType().getAlias();
         var elementText = token.getContent();
         root.addElement(elementName).setText(elementText);
@@ -94,22 +89,24 @@ public class CompilationEngine {
         }
     }
 
-    private void compileClass() {
+    private void createRoot() {
         astDocument = DocumentHelper.createDocument();
-        root = astDocument.addElement("class");
+        root = astDocument.addElement("tokens");
     }
 
-    public void compileClassVarDec() {
+    public void compileClassVarDec(Token token) {
         // initial classVarDec
         var classVarDec = root.addElement("classVarDec");
-        var token = tokenizer.getCurrentToken();
         // add elements
-        while (!StringUtils.equals(token.getValue(), ";")) {
+        while (!StringUtils.equals((CharSequence) token.getValue(), ";")) {
             createNode(token, classVarDec);
             tokenizer.advance();
             token = tokenizer.getCurrentToken();
         }
         createNode(token, classVarDec);
+    }
+
+    public void compileClass(Token token) {
     }
 
     private void compileSubroutine() {

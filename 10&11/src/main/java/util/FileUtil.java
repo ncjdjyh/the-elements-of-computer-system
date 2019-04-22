@@ -1,10 +1,14 @@
 package util;
 
+import cn.hutool.core.io.resource.Resource;
+
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 public class FileUtil {
     /**
-     * @Auther: ncjdjyh
+     * @Author: ncjdjyh
      * @Date: 2019/1/7 14:56
      * @Description:
      */
