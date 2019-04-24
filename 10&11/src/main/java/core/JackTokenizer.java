@@ -69,6 +69,7 @@ public class JackTokenizer {
 
     private JackTokenizer(File file) {
         setup();
+        // 把 token 解析出来放到一个 list 中
         extractTokenList(file);
     }
 
@@ -131,6 +132,8 @@ public class JackTokenizer {
                     .stream()
                     .map(Token::new)
                     .forEach(e -> tokenList.add(e));
+            // 当前 token 初始化为第一个
+            currentToken = tokenList.get(0);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -139,11 +142,18 @@ public class JackTokenizer {
     private void setup() {
         tokenList = new LinkedList<>();
         this.currentTokenIndex = 0;
-        this.currentToken = null;
     }
 
     public Token getCurrentToken() {
         return currentToken;
+    }
+
+    public TokenType getCurrentTokenType() {
+        return currentToken.getTokenType();
+    }
+
+    public String getCurrentTokenValue() {
+        return currentToken.getValue();
     }
 
     public File getFile() {
@@ -154,11 +164,13 @@ public class JackTokenizer {
         return tokenList.size() > currentTokenIndex;
     }
 
-    public void advance() {
+    public Token advance() {
         if (hasMoreTokens()) {
-            currentToken = tokenList.get(currentTokenIndex);
             currentTokenIndex++;
+            currentToken = tokenList.get(currentTokenIndex);
+            return currentToken;
         }
+        throw new RuntimeException("no more tokens");
     }
 
     public List<String> refineCommandLines(List<String> commandLines) {

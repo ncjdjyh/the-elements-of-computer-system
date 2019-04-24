@@ -4,6 +4,8 @@ package entity;
 import core.JackTokenizer;
 import lombok.Data;
 
+import java.security.Key;
+
 @Data
 public class Token {
     /**
@@ -12,10 +14,10 @@ public class Token {
      * @Description:
      */
     private TokenType tokenType;
+    // 字符原始内容
     private String content;
     // 普通 token 存放解析出来的值, 关键字 token 存放 Keyword
     private Object value;
-    private BuiltInType builtInType;
 
     public Token(String content) {
         this.content = content;
@@ -27,6 +29,21 @@ public class Token {
             this.value = pair.getValue1();
         }
         this.content = content;
-//        this.builtInType = JackTokenizer.getBuiltInType(this.value, content);
+    }
+
+    public String getValue() {
+        if (value instanceof Keyword) {
+            return ((Keyword) value).name;
+        } else {
+            return (String) value;
+        }
+    }
+
+    public Keyword getKeyword() {
+        // value 是关键字时才可以调用
+        if (value instanceof Keyword) {
+            return (Keyword) value;
+        }
+        throw new RuntimeException("this is not a keyword token");
     }
 }

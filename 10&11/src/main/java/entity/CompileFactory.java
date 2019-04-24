@@ -28,22 +28,22 @@ public class CompileFactory {
     }
 
     public static void executeCompile(Token token) {
-        BuiltInType builtInType = token.getBuiltInType();
-        String className = CompilationEngine.class.getName();
-        String methodName = compileStrategyMap.get(builtInType);
-        try {
-            Class<?> clazz = Class.forName(className);
-            var instance = CompilationEngine.getInstance();
-            Method method = clazz.getMethod(methodName, Token.class);
-            method.invoke(instance, token);
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+//        BuiltInType builtInType = token.getBuiltInType();
+//        String className = CompilationEngine.class.getName();
+//        String methodName = compileStrategyMap.get(builtInType);
+//        try {
+//            Class<?> clazz = Class.forName(className);
+//            var instance = CompilationEngine.getInstance();
+//            Method method = clazz.getMethod(methodName, Token.class);
+//            method.invoke(instance, token);
+//        } catch (NoSuchMethodException e) {
+//            e.printStackTrace();
+//        } catch (IllegalAccessException e) {
+//            e.printStackTrace();
+//        } catch (InvocationTargetException e) {
+//            e.printStackTrace();
+//        } catch (ClassNotFoundException e) {
+//            e.printStackTrace();
+//        }
     }
 }

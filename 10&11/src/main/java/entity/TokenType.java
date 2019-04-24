@@ -6,12 +6,12 @@ public enum TokenType {
     IDENTIFIER("identifier"), INT_CONST("integerConst"),
     STRING_CONST("stringConst");
 
-    String alias;
-    TokenType(String alias) {
-        this.alias = alias;
+    String name;
+    TokenType(String name) {
+        this.name = name;
     }
 
-    public String getAlias() {
-        return alias;
+    public String getName() {
+        return name;
     }
 }

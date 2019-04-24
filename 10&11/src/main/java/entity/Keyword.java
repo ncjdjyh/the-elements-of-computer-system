@@ -13,6 +13,10 @@ public enum Keyword {
 
     String name;
 
+    public String getName() {
+        return name;
+    }
+
     Keyword(String name) {
         this.name = name;
     }

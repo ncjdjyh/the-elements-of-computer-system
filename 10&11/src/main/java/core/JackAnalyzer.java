@@ -42,7 +42,6 @@ public class JackAnalyzer {
         JackTokenizer tokenizer = JackTokenizer.getInstance(file);
         CompilationEngine engine = CompilationEngine.getInstance(tokenizer);
         engine.generateAstXML();
-        engine.printAstFile();
         System.out.println("done");
     }
 
