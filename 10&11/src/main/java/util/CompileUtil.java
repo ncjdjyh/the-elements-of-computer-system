@@ -50,6 +50,7 @@ public class CompileUtil {
         }
     }
 
+    /* 检查 token 中的关键字类型是否有任一符合预期如果不是, 抛出一个编译时错误 */
     public void validateAnyKeywordType(Keyword actual, Keyword... expected) {
         for (Keyword v : expected) {
             if (Objects.equals(actual, v)) {
@@ -89,5 +90,19 @@ public class CompileUtil {
                 || keyword == Keyword.CHAR
                 || keyword == Keyword.BOOLEAN
                 || StringUtils.equals(token.getValue(), engine.getClassName());
+    }
+
+    public void checkStatement(Token token) {
+        if (isStatement(token) == false) {
+            throw new RuntimeException("the statement type is not illegal");
+        }
+    }
+
+    public boolean isStatement(Token token) {
+        var keyword = token.getKeyword();
+        return keyword == Keyword.IF ||
+                keyword == Keyword.LET ||
+                keyword == Keyword.DO ||
+                keyword == Keyword.RETURN;
     }
 }

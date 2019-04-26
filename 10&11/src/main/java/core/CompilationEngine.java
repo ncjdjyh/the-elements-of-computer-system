@@ -211,8 +211,8 @@ public class CompilationEngine {
         }
         tokenizer.advance();
         compileStatements(root);
-//        validateTokenValue("}", token.getValue());
-//        createNode(root);
+        compileUtil.validateTokenValue("}", token.getValue());
+        createNode(root);
     }
 
     private void compileStatements(Element root) {
