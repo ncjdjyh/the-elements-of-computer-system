@@ -1,21 +1,24 @@
 package core;
 
-import cn.hutool.core.lang.Assert;
 import entity.Keyword;
 import entity.Token;
 import entity.TokenType;
+import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.units.qual.C;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
+import util.CompileUtil;
 import util.FileUtil;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Objects;
 
+@Data
 public class CompilationEngine {
     /**
      * @Author: ncjdjyh
@@ -23,13 +26,14 @@ public class CompilationEngine {
      * @Description: 自顶向下递归语法分析器
      */
     public static final String TARGET_FIX = ".xml";
+    private static CompilationEngine singleton;
+    private CompileUtil compileUtil;
     private String className;
     private JackTokenizer tokenizer;
     // 抽象语法树根节点 所有的 token 写到这个文档里
     private Document astDocument;
     // 抽象语法树根节点
     private Element root;
-    private static CompilationEngine singleton;
 
     private CompilationEngine(JackTokenizer tokenizer) {
         this.tokenizer = tokenizer;
@@ -38,6 +42,8 @@ public class CompilationEngine {
     public static CompilationEngine getInstance(JackTokenizer tokenizer) {
         if (singleton == null) {
             singleton = new CompilationEngine(tokenizer);
+            CompileUtil compileUtil = new CompileUtil(singleton);
+            singleton.setCompileUtil(compileUtil);
         }
         return singleton;
     }
@@ -91,10 +97,14 @@ public class CompilationEngine {
 
     public String exchangeXMLBuiltCharacter(String character) {
         switch (character) {
-            case (">") : return "&gt;";
-            case ("<") : return "&lt;";
-            case ("&") : return "&amp";
-            default: return character;
+            case (">"):
+                return "&gt;";
+            case ("<"):
+                return "&lt;";
+            case ("&"):
+                return "&amp";
+            default:
+                return character;
         }
     }
 
@@ -102,7 +112,7 @@ public class CompilationEngine {
     private void compileClass() {
         astDocument = DocumentHelper.createDocument();
         // class
-        validateTokenValue("class", tokenizer.getCurrentTokenValue());
+        compileUtil.validateTokenValue("class", tokenizer.getCurrentTokenValue());
         root = astDocument.addElement("class");
         tokenizer.advance();
         // className
@@ -113,7 +123,7 @@ public class CompilationEngine {
         this.className = tokenizer.getCurrentTokenValue();
         createNode(root);
         tokenizer.advance();
-        validateTokenValue("{", tokenizer.getCurrentTokenValue());
+        compileUtil.validateTokenValue("{", tokenizer.getCurrentTokenValue());
         tokenizer.advance();
         String classBodyValue = tokenizer.getCurrentTokenValue();
         while (!classBodyValue.equals("}")) {
@@ -134,8 +144,11 @@ public class CompilationEngine {
      */
     public void compileClassVarDec() {
         var token = tokenizer.getCurrentToken();
+        compileUtil.validateAnyKeywordType(token.getKeyword(), Keyword.STATIC, Keyword.FIELD);
         // initial classVarDec element
         var classVarDec = root.addElement("classVarDec");
+        createNode(classVarDec);
+        token = tokenizer.advance();
         // add elements
         while (!StringUtils.equals(token.getValue(), ";")) {
             createNode(classVarDec);
@@ -151,35 +164,76 @@ public class CompilationEngine {
         // return type
         tokenizer.advance();
         Token token = tokenizer.getCurrentToken();
-        if (!isCorrectParamType(token)) {
-            throw new RuntimeException("the return type is not illegal");
-        }
+        compileUtil.checkTypeOrVoid(token);
         createNode(subroutineDec);
         // subroutineName
         token = tokenizer.advance();
-        validateTokenType(token.getTokenType(), TokenType.IDENTIFIER);
+        compileUtil.validateTokenType(token.getTokenType(), TokenType.IDENTIFIER);
         createNode(subroutineDec);
         // parameterList
         tokenizer.advance();
         compileParameterList(subroutineDec);
         // subroutineBody
+        tokenizer.advance();
         compileSubroutineBody(subroutineDec);
     }
 
+    private void compileParameterList(Element root) {
+        Token token = tokenizer.getCurrentToken();
+        compileUtil.validateTokenValue(token.getValue(), "(");
+        createNode(root);
+        tokenizer.advance();
+        while (!tokenizer.getCurrentTokenValue().equals(")")) {
+            // 说明至少有一个参数
+            compileUtil.checkType(tokenizer.getCurrentToken());
+            createNode(root);
+            token = tokenizer.advance();
+            compileUtil.validateTokenType(token.getTokenType(), TokenType.IDENTIFIER);
+            createNode(root);
+            token = tokenizer.advance();
+            if (token.getValue().equals(",")) {
+                // 多个参数
+                createNode(root);
+                tokenizer.advance();
+            }
+        }
+        createNode(root);
+    }
+
+    /* 编译函数体 */
     private void compileSubroutineBody(Element root) {
+        Token token = tokenizer.getCurrentToken();
+        compileUtil.validateTokenValue("{", token.getValue());
+        createNode(root);
+        token = tokenizer.advance();
+        if (token.getValue().equals("var")) {
+            compileVarDec(root);
+        }
+        tokenizer.advance();
+        compileStatements(root);
+//        validateTokenValue("}", token.getValue());
+//        createNode(root);
     }
 
-    private boolean isCorrectParamType(Token token) {
-        var keyword = token.getKeyword();
-        return keyword == Keyword.INT
-                || keyword == Keyword.CHAR
-                || keyword == Keyword.BOOLEAN
-                || keyword == Keyword.VOID
-                || StringUtils.equals(token.getValue(), className);
+    private void compileStatements(Element root) {
+
     }
 
-    private void compileStatements() {
-
+    /* 编译变量定义 */
+    private void compileVarDec(Element root) {
+        var classVarDec = root.addElement("varDec");
+        Token token = tokenizer.advance();
+        compileUtil.checkType(token);
+        createNode(classVarDec);
+        token = tokenizer.advance();
+        compileUtil.validateTokenType(token.getTokenType(), TokenType.IDENTIFIER);
+        // add elements
+        token = tokenizer.advance();
+        while (!StringUtils.equals(token.getValue(), ";")) {
+            createNode(classVarDec);
+            token = tokenizer.advance();
+        }
+        createNode(classVarDec);
     }
 
     private void compileDo() {
@@ -212,48 +266,5 @@ public class CompilationEngine {
 
     private void compileExpressionList() {
 
-    }
-
-    private void compileParameterList(Element root) {
-        Token token = tokenizer.getCurrentToken();
-        validateTokenValue(token.getValue(), "(");
-        createNode(root);
-        tokenizer.advance();
-        while (!tokenizer.getCurrentTokenValue().equals(")")) {
-            // 说明至少有一个参数
-            if (isCorrectParamType(tokenizer.getCurrentToken())) {
-                createNode(root);
-                token = tokenizer.advance();
-                validateTokenType(token.getTokenType(), TokenType.IDENTIFIER);
-                createNode(root);
-                token = tokenizer.advance();
-                if (token.getValue().equals(",")) {
-                    // 多个参数
-                    createNode(root);
-                    tokenizer.advance();
-                }
-            } else {
-                throw new RuntimeException("please input a correct paramType");
-            }
-        }
-        createNode(root);
-    }
-
-    /* 检查 token 中的值是否符合预期如果不是, 抛出一个编译时错误 */
-    private void validateTokenValue(final String expected, final String actual) {
-        if (!expected.equals(actual)) {
-            throw new RuntimeException("Syntax expected token '" + expected
-                    + "' but actual was '" + actual + "'\n"
-                    + tokenizer.getCurrentToken().getContent());
-        }
-    }
-
-    /* 检查 token 中的值是否符合预期如果不是, 抛出一个编译时错误 */
-    private void validateTokenType(TokenType expected, TokenType actual) {
-        if (!Objects.equals(expected, actual)) {
-            throw new RuntimeException("Syntax expected token type '" + expected.getName()
-                    + "' but actual was '" + actual.getName() + "'\n"
-                    + tokenizer.getCurrentToken().getContent());
-        }
     }
 }
