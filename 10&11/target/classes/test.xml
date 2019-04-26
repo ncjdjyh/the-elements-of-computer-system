@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<class>
+  <identifier>Main</identifier>
+  <classVarDec>
+    <keyword>static</keyword>
+    <keyword>boolean</keyword>
+    <identifier>a</identifier>
+    <symbol>,</symbol>
+    <identifier>b</identifier>
+    <symbol>,</symbol>
+    <identifier>c</identifier>
+    <symbol>;</symbol>
+  </classVarDec>
+  <subroutineDec>
+    <keyword>method</keyword>
+    <keyword>void</keyword>
+    <identifier>dispose</identifier>
+    <symbol>(</symbol>
+    <keyword>int</keyword>
+    <identifier>a</identifier>
+    <symbol>,</symbol>
+    <keyword>int</keyword>
+    <identifier>b</identifier>
+    <symbol>)</symbol>
+    <symbol>{</symbol>
+    <varDec>
+      <keyword>int</keyword>
+      <symbol>,</symbol>
+      <identifier>d</identifier>
+      <symbol>,</symbol>
+      <identifier>e</identifier>
+      <symbol>;</symbol>
+    </varDec>
+  </subroutineDec>
+</class>
