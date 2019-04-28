@@ -5,7 +5,6 @@ import entity.Token;
 import entity.TokenType;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.units.qual.C;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
@@ -211,12 +210,33 @@ public class CompilationEngine {
         }
         tokenizer.advance();
         compileStatements(root);
+        token = tokenizer.advance();
         compileUtil.validateTokenValue("}", token.getValue());
         createNode(root);
     }
 
     private void compileStatements(Element root) {
+        var statements = root.addElement("statements");
+        var token = tokenizer.getCurrentToken();
+        if (token.getValue().equals("}")) {
+            return;
+        }
+        while (compileUtil.isStatement(token)) {
+            compileStatement(statements);
+        }
+    }
 
+    private void compileStatement(Element root) {
+        var statement = root.addElement("statement");
+        var token = tokenizer.getCurrentToken();
+        var st = token.getKeyword();
+        switch (st) {
+            case DO -> compileDo(statement);
+            case IF -> compileIf(statement);
+            case WHILE -> compileWhile(statement);
+            case LET -> compileLet(statement);
+            case RETURN -> compileReturn(statement);
+        }
     }
 
     /* 编译变量定义 */
@@ -236,35 +256,72 @@ public class CompilationEngine {
         createNode(classVarDec);
     }
 
-    private void compileDo() {
+    private void compileDo(Element root) {
 
     }
 
-    private void compileLet() {
+    private void compileLet(Element root) {
+    }
+
+    private void compileWhile(Element root) {
 
     }
 
-    private void compileWhile() {
+    private void compileReturn(Element root) {
 
     }
 
-    private void compileReturn() {
+    private void compileIf(Element root) {
+        var token = tokenizer.getCurrentToken();
+        compileUtil.validateKeywordType(Keyword.IF, token.getKeyword());
+        var _if = root.addElement("if");
+        createNode(_if);
+        token = tokenizer.advance();
+        compileUtil.validateTokenValue("(", token.getValue());
+        createNode(_if);
+        tokenizer.advance();
+        compileExpression(_if);
+        token = tokenizer.advance();
+        compileUtil.validateTokenValue(")", token.getValue());
+        createNode(_if);
+        token = tokenizer.advance();
+        compileUtil.validateTokenValue("{", token.getValue());
+        createNode(_if);
+        tokenizer.advance();
+        compileStatements(_if);
+        token = tokenizer.advance();
+        compileUtil.validateTokenValue("}", token.getValue());
+        createNode(_if);
+    }
+
+    private void compileExpression(Element root) {
+        var token = tokenizer.getCurrentToken();
+        var expression = root.addElement("expression");
+        compileUtil.checkTerm(token);
+        var term = expression.addElement("term");
+        compileTerm(term);
+        token = tokenizer.advance();
+        if (token.getValue().equals("(")) {
+            // 有 operator
+            createNode(term);
+            token = tokenizer.advance();
+            while (!token.getValue().equals(")")) {
+                token = tokenizer.advance();
+                // operator
+                compileUtil.checkOperator(token);
+                createNode(term);
+                // term
+                token = tokenizer.advance();
+                compileTerm(term);
+            }
+        }
+    }
+
+    private void compileTerm(Element root) {
 
     }
 
-    private void compileIf() {
-
-    }
-
-    private void compileExpression() {
-
-    }
-
-    private void compileTerm() {
-
-    }
-
-    private void compileExpressionList() {
+    private void compileExpressionList(Element root) {
 
     }
 }

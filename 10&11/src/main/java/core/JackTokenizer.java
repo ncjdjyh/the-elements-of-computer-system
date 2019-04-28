@@ -31,14 +31,14 @@ public class JackTokenizer {
     private Token currentToken;
     public static JackTokenizer singleton;
 
-    private static final int MIN_INT = 0;
-    private static final int MAX_INT = 0x7FFF;
-    private static final String IDENTIFIER = "^[a-zA-Z_]{1}[a-zA-Z0-9_]*";
-    private static final String STRING_CONST = "^\"[^\"\n]*\"$";
-    private static final String SINGLELINE_COMMENT = "//";
-    private static final String MULT_START_COMMENT = "/*";
-    private static final String MULT_API_START_COMMENT = "/**";
-    private static final String MULT_END_COMMENT = "*/";
+    public static final int MIN_INT = 0;
+    public static final int MAX_INT = 0x7FFF;
+    public static final String IDENTIFIER = "^[a-zA-Z_]{1}[a-zA-Z0-9_]*";
+    public static final String STRING_CONST = "^\"[^\"\n]*\"$";
+    public static final String SINGLELINE_COMMENT = "//";
+    public static final String MULT_START_COMMENT = "/*";
+    public static final String MULT_API_START_COMMENT = "/**";
+    public static final String MULT_END_COMMENT = "*/";
 
     public static HashSet<String> keywordSet;
     public static HashSet<String> symbolSet;

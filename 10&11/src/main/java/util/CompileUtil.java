@@ -1,5 +1,6 @@
 package util;
 
+import cn.hutool.core.lang.Assert;
 import core.CompilationEngine;
 import core.JackTokenizer;
 import entity.Keyword;
@@ -17,6 +18,21 @@ import java.util.Objects;
 public class CompileUtil {
     private CompilationEngine engine;
     private JackTokenizer tokenizer;
+    private static String IDENTIFIER = "[a-zA-Z0-9_]+";
+    // 形如 1, 2, 3 这样的参数
+    private static String EXPRESSION_LIST = String.format("(%s,{0,1})*", IDENTIFIER);
+    private static String SUBROUTINE_CALL = String.format(
+            "(%s\\.{1}%s\\(%s\\)|%s\\(%s\\))",
+            IDENTIFIER, IDENTIFIER,
+            EXPRESSION_LIST, IDENTIFIER, EXPRESSION_LIST
+    );
+
+    private static String TERM = String.format(
+            "%s|%s|%s|%s|%s|%s|\\(%s\\)", "^\\d+$", "^[a-zA-Z]+$", "(true|false|null|this)",
+            JackTokenizer.IDENTIFIER, JackTokenizer.IDENTIFIER + "[" + EXPRESSION_LIST + "]",
+            SUBROUTINE_CALL, EXPRESSION_LIST);
+    /* -1 ~1 */
+    private static String UNARY_TERM = String.format("-%s|~%s", TERM, TERM);
 
     public CompileUtil(CompilationEngine engine) {
         this.engine = engine;
@@ -103,6 +119,45 @@ public class CompileUtil {
         return keyword == Keyword.IF ||
                 keyword == Keyword.LET ||
                 keyword == Keyword.DO ||
-                keyword == Keyword.RETURN;
+                keyword == Keyword.RETURN ||
+                keyword == Keyword.WHILE;
+    }
+
+    public void checkTerm(Token token) {
+        if (isTerm(token) == false) {
+            throw new RuntimeException("illegal term:" + token.getValue());
+        }
+    }
+
+    public boolean isTerm(Token token) {
+        var v = token.getValue();
+        return v.matches(TERM);
+    }
+
+    public void checkOperator(Token token) {
+        if (isOperator(token) == false) {
+            throw new RuntimeException("illegal operator:" + token.getValue());
+        }
+    }
+
+    public boolean isOperator(Token token) {
+        var v = token.getValue();
+        return v.equals("+") || v.equals("-") ||
+                v.equals("*") || v.equals("/") ||
+                v.equals("&") || v.equals("|") ||
+                v.equals("<") || v.equals(">") ||
+                v.equals("=");
+    }
+
+    public static void main(String[] args) {
+        System.out.println(~0x011);
+        var b = "1";
+        Assert.isTrue(b.matches(EXPRESSION_LIST));
+        var a = "a.sum(1,2,3)";
+        var c = "a..sum(1,2,3)";
+        var d = "sum(123)";
+        Assert.isTrue(a.matches(SUBROUTINE_CALL));
+        Assert.isFalse(c.matches(SUBROUTINE_CALL));
+        Assert.isTrue(d.matches(SUBROUTINE_CALL));
     }
 }
