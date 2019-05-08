@@ -1,6 +1,5 @@
 package util;
 
-import cn.hutool.core.lang.Assert;
 import core.CompilationEngine;
 import core.JackTokenizer;
 import entity.Keyword;
@@ -26,12 +25,12 @@ public class CompileUtil {
             IDENTIFIER, IDENTIFIER,
             EXPRESSION_LIST, IDENTIFIER, EXPRESSION_LIST
     );
-
     private static String TERM = String.format(
             "%s|%s|%s|%s|%s|%s|\\(%s\\)", "^\\d+$", "^[a-zA-Z]+$", "(true|false|null|this)",
             JackTokenizer.IDENTIFIER, JackTokenizer.IDENTIFIER + "[" + EXPRESSION_LIST + "]",
-            SUBROUTINE_CALL, EXPRESSION_LIST);
-    /* -1 ~1 */
+            SUBROUTINE_CALL, EXPRESSION_LIST
+    );
+    /* 例如 -1 ~1 ~1 表示将对应的二进制取反 例如 0x001 -> 0x110 */
     private static String UNARY_TERM = String.format("-%s|~%s", TERM, TERM);
 
     public CompileUtil(CompilationEngine engine) {
@@ -115,12 +114,15 @@ public class CompileUtil {
     }
 
     public boolean isStatement(Token token) {
-        var keyword = token.getKeyword();
-        return keyword == Keyword.IF ||
-                keyword == Keyword.LET ||
-                keyword == Keyword.DO ||
-                keyword == Keyword.RETURN ||
-                keyword == Keyword.WHILE;
+        if (token.getTokenType() == TokenType.KEYWORD) {
+            var keyword = token.getKeyword();
+            return keyword == Keyword.IF ||
+                    keyword == Keyword.LET ||
+                    keyword == Keyword.DO ||
+                    keyword == Keyword.RETURN ||
+                    keyword == Keyword.WHILE;
+        }
+        return false;
     }
 
     public void checkTerm(Token token) {
@@ -149,15 +151,14 @@ public class CompileUtil {
                 v.equals("=");
     }
 
-    public static void main(String[] args) {
-        System.out.println(~0x011);
-        var b = "1";
-        Assert.isTrue(b.matches(EXPRESSION_LIST));
-        var a = "a.sum(1,2,3)";
-        var c = "a..sum(1,2,3)";
-        var d = "sum(123)";
-        Assert.isTrue(a.matches(SUBROUTINE_CALL));
-        Assert.isFalse(c.matches(SUBROUTINE_CALL));
-        Assert.isTrue(d.matches(SUBROUTINE_CALL));
+    public boolean isSubroutineCall(Token token) {
+        var v = token.getValue();
+        return v.matches(SUBROUTINE_CALL);
+    }
+
+    public void checkSubroutineCall(Token token) {
+        if (isStatement(token) == false) {
+            throw new RuntimeException("illegal operator:" + token.getValue());
+        }
     }
 }

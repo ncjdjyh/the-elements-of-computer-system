@@ -7,5 +7,10 @@
 
 class Main {
     static boolean a, b, c;
-    method void dispose(int a, int b)
+    method void dispose(int a, int b) {
+        if (1 = 2) {
+
+        }
+        do moveSquare();
+    }
 }

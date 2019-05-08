@@ -7,7 +7,18 @@
 
 class Main {
     static boolean a, b, c;
-    method void dispose(int a, int b) {
-        var int c, d, e;
+    method void dispose() {
+        if (1 = 2) {
+            let a = true;
+        } else {
+            do moveSquare();
+        }
+
+        while (1 = 1) {
+            do moveSquare();
+            return square;
+            return this;
+            return;
+        }
     }
 }

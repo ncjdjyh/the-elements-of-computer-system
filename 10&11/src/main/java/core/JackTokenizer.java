@@ -80,7 +80,7 @@ public class JackTokenizer {
             return Keyword.METHOD;
         } else if (content.equalsIgnoreCase("int")) {
             return Keyword.INT;
-        }  else if (content.equalsIgnoreCase("function")) {
+        } else if (content.equalsIgnoreCase("function")) {
             return Keyword.FUNCTION;
         } else if (content.equalsIgnoreCase("boolean")) {
             return Keyword.BOOLEAN;
@@ -161,9 +161,10 @@ public class JackTokenizer {
     }
 
     public boolean hasMoreTokens() {
-        return tokenList.size() > currentTokenIndex;
+        return tokenList.size() - 1 > currentTokenIndex;
     }
 
+    /* 指令向后读取一位 */
     public Token advance() {
         if (hasMoreTokens()) {
             currentTokenIndex++;
@@ -171,6 +172,21 @@ public class JackTokenizer {
             return currentToken;
         }
         throw new RuntimeException("no more tokens");
+    }
+
+    /* 不改变当前 token 只是向前看一位 */
+    public Token peekAdvance() {
+        if (hasMoreTokens()) {
+            return tokenList.get(currentTokenIndex + 1);
+        }
+        throw new RuntimeException("no more tokens");
+    }
+
+    /* 指令向前读取一位 */
+    public Token back() {
+        currentTokenIndex--;
+        currentToken = tokenList.get(currentTokenIndex);
+        return currentToken;
     }
 
     public List<String> refineCommandLines(List<String> commandLines) {
@@ -261,38 +277,4 @@ public class JackTokenizer {
             throw new RuntimeException("Unknow token type!" + "\n");
         }
     }
-
-//    public static BuiltInType getBuiltInType(Object keyword, String content) {
-//        if (keyword == Keyword.STATIC || keyword == Keyword.FIELD) {
-//            return BuiltInType.CLASS_VAR_DEC;
-//        } else if (keyword == Keyword.CLASS) {
-//            return BuiltInType.CLASS;
-//        }  else if (Keyword.DO == keyword) {
-//            return BuiltInType.DO;
-//        }  else if (Keyword.RETURN == keyword) {
-//            return BuiltInType.RETURN;
-//        } else if (Keyword.IF == keyword) {
-//            return BuiltInType.IF;
-//        } else if (Keyword.WHILE == keyword) {
-//            return BuiltInType.WHILE;
-//        } else if (Keyword.LET == keyword) {
-//            return BuiltInType.LET;
-//        } else if () {
-//            return BuiltInType.EXPRESSION;
-//        } else if () {
-//            return BuiltInType.EXPRESSION_LIST;
-//        } else if () {
-//            return BuiltInType.PARAMETER_LIST;
-//        } else if () {
-//            return BuiltInType.SUBROUTINE;
-//        } else if () {
-//            return BuiltInType.STATEMENTS;
-//        } else if () {
-//            return BuiltInType.TERM;
-//        } else if () {
-//            return BuiltInType.VAR_DEC;
-//        } else {
-//            throw new RuntimeException("不支持的关键字");
-//        }
-//    }
 }
