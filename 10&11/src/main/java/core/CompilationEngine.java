@@ -105,6 +105,7 @@ public class CompilationEngine {
         // class
         compileUtil.validateTokenValue("class", tokenizer.getCurrentTokenValue());
         root = astDocument.addElement("class");
+        createNode(root);
         tokenizer.advance();
         // className
         boolean isLegalClassName = tokenizer.getCurrentTokenType() == TokenType.IDENTIFIER;
@@ -115,6 +116,7 @@ public class CompilationEngine {
         createNode(root);
         tokenizer.advance();
         compileUtil.validateTokenValue("{", tokenizer.getCurrentTokenValue());
+        createNode(root);
         tokenizer.advance();
         String classBodyValue = tokenizer.getCurrentTokenValue();
         while (!classBodyValue.equals("}")) {
@@ -128,6 +130,8 @@ public class CompilationEngine {
             tokenizer.advance();
             classBodyValue = tokenizer.getCurrentTokenValue();
         }
+        // create "}"
+        createNode(root);
     }
 
     /**
@@ -178,43 +182,39 @@ public class CompilationEngine {
     private void compileParameterList(Element root) {
         Element parameterList = root.addElement("parameterList").addText("");
         Token token = tokenizer.getCurrentToken();
-        if (token.getValue().equals(")")) {
-            // 空的参数列表
-            return;
+        while (token.getValue().equals(")") == false) {
+            tokenizer.back();
+            // 至少有一个参数
+            do {
+                token = tokenizer.advance();
+                compileUtil.checkType(token);
+                createNode(parameterList);
+                token = tokenizer.advance();
+                createNode(parameterList);
+                token = tokenizer.advance();
+            } while (token.getValue().equals(","));
         }
-        // 至少一个参数
-        while (compileUtil.isType(token)) {
-            createNode(parameterList);
-            token = tokenizer.advance();
-            compileUtil.validateTokenType(TokenType.IDENTIFIER, token.getTokenType());
-            createNode(parameterList);
-            token = tokenizer.advance();
-            createNode(parameterList);
-            if (!token.getValue().equals(",")) {
-                return;
-            }
-            token = tokenizer.advance();
-        }
-        tokenizer.back();
     }
 
     /* 编译函数体 */
     private void compileSubroutineBody(Element root) {
+        Element subroutineBody = root.addElement("subroutineBody");
         Token token = tokenizer.getCurrentToken();
         compileUtil.validateTokenValue("{", token.getValue());
-        createNode(root);
+        createNode(subroutineBody);
         token = tokenizer.advance();
         if (token.getValue().equals("}")) {
-            createNode(root);
+            createNode(subroutineBody);
             return;
         } else {
-            if (token.getValue().equals("var")) {
-                compileVarDec(root);
+            while (token.getValue().equals("var")) {
+                compileVarDec(subroutineBody);
+                token = tokenizer.advance();
             }
-            compileStatements(root);
+            compileStatements(subroutineBody);
             token = tokenizer.getCurrentToken();
             compileUtil.validateTokenValue("}", token.getValue());
-            createNode(root);
+            createNode(subroutineBody);
         }
     }
 
@@ -225,8 +225,8 @@ public class CompilationEngine {
         if (token.getValue().equals("}")) {
             return;
         }
-        if (!compileUtil.isStatement(token)) {
-            throw new RuntimeException("is not a statement");
+        if (compileUtil.isStatement(token) == false) {
+            throw new RuntimeException("compileStatements error: token is not a statement:" + token.getValue());
         }
         while (compileUtil.isStatement(token)) {
             compileStatement(statements);
@@ -243,13 +243,12 @@ public class CompilationEngine {
             return;
         }
         var st = token.getKeyword();
-        var statement = root.addElement("statement");
         switch (st) {
-            case DO -> compileDo(statement);
-            case IF -> compileIf(statement);
-            case WHILE -> compileWhile(statement);
-            case LET -> compileLet(statement);
-            case RETURN -> compileReturn(statement);
+            case DO -> compileDo(root);
+            case IF -> compileIf(root);
+            case WHILE -> compileWhile(root);
+            case LET -> compileLet(root);
+            case RETURN -> compileReturn(root);
         }
         tokenizer.advance();
     }
@@ -258,10 +257,14 @@ public class CompilationEngine {
     private void compileVarDec(Element root) {
         var classVarDec = root.addElement("varDec");
         Token token = tokenizer.getCurrentToken();
+        compileUtil.validateTokenValue("var", token.getValue());
+        createNode(classVarDec);
+        token = tokenizer.advance();
         compileUtil.checkType(token);
         createNode(classVarDec);
         token = tokenizer.advance();
         compileUtil.validateTokenType(token.getTokenType(), TokenType.IDENTIFIER);
+        createNode(classVarDec);
         // add elements
         token = tokenizer.advance();
         while (!StringUtils.equals(token.getValue(), ";")) {
@@ -292,7 +295,6 @@ public class CompilationEngine {
         compileUtil.validateTokenType(TokenType.IDENTIFIER, token.getTokenType());
         createNode(letStatement);
         token = tokenizer.peekAdvance();
-
         if (token.getValue().equals("[")) {
             tokenizer.advance();
             // 处理数组的形式
@@ -382,8 +384,8 @@ public class CompilationEngine {
             token = tokenizer.advance();
             compileUtil.validateTokenValue("{", token.getValue());
             createNode(elseStatement);
-            tokenizer.advance();
-            compileStatement(elseStatement);
+            token = tokenizer.advance();
+            compileStatements(elseStatement);
             token = tokenizer.getCurrentToken();
             compileUtil.validateTokenValue("}", token.getValue());
             createNode(elseStatement);
@@ -408,7 +410,8 @@ public class CompilationEngine {
         var token = tokenizer.getCurrentToken();
         var term = root.addElement("term");
         var tt = token.getTokenType();
-        var isConstant = tt == TokenType.INT_CONST ||
+        var isConstant =
+                tt == TokenType.INT_CONST ||
                 tt == TokenType.STRING_CONST ||
                 tt == TokenType.KEYWORD;
         if (isConstant) {
@@ -427,16 +430,21 @@ public class CompilationEngine {
         } else {
             // 现在 tokenType 一定是 identifier
             compileUtil.validateTokenType(TokenType.IDENTIFIER, token.getTokenType());
-            // 向前看一位, 分情况处理
+            // 向前看一位, 分情况处理(字符 数组 调用)
             token = tokenizer.peekAdvance();
             if (StringUtils.equalsAny(token.getValue(), ".", "(")) {
                 compileSubroutineCall(term);
             } else if (token.getValue().equals("[")) {
+                tokenizer.advance();
+                createNode(term);
+                tokenizer.advance();
                 compileExpression(term);
+                token = tokenizer.getCurrentToken();
+                compileUtil.validateTokenValue("]", token.getValue());
+                createNode(term);
             } else {
                 // 只有一个 varName
                 createNode(term);
-                return;
             }
         }
     }
@@ -458,7 +466,7 @@ public class CompilationEngine {
             token = tokenizer.advance();
             compileUtil.validateTokenType(TokenType.IDENTIFIER, token.getTokenType());
             createNode(root);
-            tokenizer.advance();
+            token = tokenizer.advance();
             compileUtil.validateTokenValue("(", token.getValue());
             tokenizer.advance();
             compileExpressionList(root);
@@ -473,16 +481,14 @@ public class CompilationEngine {
     private void compileExpressionList(Element root) {
         var token = tokenizer.getCurrentToken();
         var expressionList = root.addElement("expressionList").addText("");
-        if (token.getValue().equals(")")) {
-            // 空的参数列表
-            return;
+        while (token.getValue().equals(")") == false) {
+            // 至少一个参数
+            token = tokenizer.back();
+            do {
+                token = tokenizer.advance();
+                compileExpression(expressionList);
+                token = tokenizer.getCurrentToken();
+            } while (token.getValue().equals(","));
         }
-        // 至少一个参数
-        do {
-            compileUtil.validateTokenType(TokenType.IDENTIFIER, token.getTokenType());
-            compileExpression(expressionList);
-            token = tokenizer.advance();
-        } while (token.getValue().equals(","));
-        tokenizer.back();
     }
 }

@@ -1,7 +1,5 @@
 package core;
 
-import cn.hutool.core.lang.Assert;
-import entity.BuiltInType;
 import entity.Keyword;
 import entity.Token;
 import entity.TokenType;
@@ -10,7 +8,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.javatuples.Pair;
 
 import java.io.*;
-import java.security.Key;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,11 +31,12 @@ public class JackTokenizer {
     public static final int MIN_INT = 0;
     public static final int MAX_INT = 0x7FFF;
     public static final String IDENTIFIER = "^[a-zA-Z_]{1}[a-zA-Z0-9_]*";
-    public static final String STRING_CONST = "^\"[^\"\n]*\"$";
+    public static final String STRING_CONST = "^\"[^\"]*\"$";
     public static final String SINGLELINE_COMMENT = "//";
     public static final String MULT_START_COMMENT = "/*";
     public static final String MULT_API_START_COMMENT = "/**";
     public static final String MULT_END_COMMENT = "*/";
+    public static final String STRING_SEPARATOR = "\\";
 
     public static HashSet<String> keywordSet;
     public static HashSet<String> symbolSet;
@@ -124,12 +122,14 @@ public class JackTokenizer {
     private void extractTokenList(File file) {
         try {
             this.file = file;
-            // TODO 1. 为了方便直接使用了 api 然后对结果再进行处理, 其实不是一个好的方法因为读取了两次 token 2. 不方便进行差错检查
             var lines = FileUtils.readLines(file);
             lines = refineCommandLines(lines);
-            var tokenStr = join(lines, StringUtils.EMPTY).split("\\s+");
-            Arrays.asList(tokenStr)
+            var tokenStr = StringUtils.join(lines, StringUtils.EMPTY);
+            var tokens = tokenStr.split("\\s+");
+            Arrays.asList(tokens)
                     .stream()
+                    .map(e -> e.replace(STRING_SEPARATOR, SPACE))
+                    .map(String::trim)
                     .map(Token::new)
                     .forEach(e -> tokenList.add(e));
             // 当前 token 初始化为第一个
@@ -200,19 +200,24 @@ public class JackTokenizer {
                     boolean notComment = !startsWith(e, SINGLELINE_COMMENT);
                     return notComment && notEmpty;
                 })
-                .map(JackTokenizer::change)
+                .map(JackTokenizer::handleString)
                 .map(JackTokenizer::handleInnerLineComment)
                 .map(JackTokenizer::reloadCommandAccordingToSymbol)
                 .collect(Collectors.toList());
         return commandLines;
     }
 
-    /* TODO 用很 tricky 的方式解决形如 ""content"" 的字符串问题 感觉还是要自己一行一行的来读, 便于控制~ */
-    private static String change(String command) {
+    /* 用很 tricky 的方式处理了字符串中有空格时出现的问题 */
+    private static String handleString(String command) {
         Pattern p = Pattern.compile("\"(.*)\"");
         Matcher m = p.matcher(command);
-        while (m.find()) {
-            command = m.group(1);
+        if (m.find()) {
+            // 字符串类型
+            var sm = m.group(1);
+            sm = "\"" + sm.replace(SPACE, STRING_SEPARATOR);
+            var sh = StringUtils.substringBefore(command, "\"");
+            var st = "\"" + StringUtils.substringAfterLast(command, "\"");
+            command = sh + sm + st + SPACE;
         }
         return command;
     }
@@ -247,11 +252,11 @@ public class JackTokenizer {
         return startsWithAny(command, MULT_START_COMMENT, MULT_API_START_COMMENT);
     }
 
-    /* 如果遇到 symbol 要进行分隔 目前使用的分隔符是空格 ~ */
+    /* 如果遇到 symbol 要进行分隔 目前使用的分隔符是 ~ */
     private static String reloadCommandAccordingToSymbol(String command) {
         for (var s : symbolSet) {
             if (command.contains(s)) {
-                command = replace(command, s, SPACE + s + SPACE);
+                command = StringUtils.replace(command, s, SPACE + s + SPACE);
             }
         }
         return command;
@@ -274,7 +279,7 @@ public class JackTokenizer {
         } else if (content.matches(STRING_CONST)) {
             return Pair.with(TokenType.STRING_CONST, content);
         } else {
-            throw new RuntimeException("Unknow token type!" + "\n");
+            throw new RuntimeException("Unknow token type!  " + content);
         }
     }
 }

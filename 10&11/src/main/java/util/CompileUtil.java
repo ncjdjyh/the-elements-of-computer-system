@@ -83,8 +83,7 @@ public class CompileUtil {
     }
 
     public boolean isTypeOrVoid(Token token) {
-        var keyword = token.getKeyword();
-        return isType(token) || keyword == Keyword.VOID;
+        return isType(token) || token.getKeyword() == Keyword.VOID;
     }
 
     public void checkTypeOrVoid(Token token) {
@@ -100,11 +99,16 @@ public class CompileUtil {
     }
 
     public boolean isType(Token token) {
-        var keyword = token.getKeyword();
-        return keyword == Keyword.INT
-                || keyword == Keyword.CHAR
-                || keyword == Keyword.BOOLEAN
-                || StringUtils.equals(token.getValue(), engine.getClassName());
+        if (token.getTokenType() == TokenType.IDENTIFIER) {
+            // className
+            return true;
+        } else {
+            var keyword = token.getKeyword();
+            return keyword == Keyword.INT
+                    || keyword == Keyword.CHAR
+                    || keyword == Keyword.BOOLEAN
+                    || StringUtils.equals(token.getValue(), engine.getClassName());
+        }
     }
 
     public void checkStatement(Token token) {

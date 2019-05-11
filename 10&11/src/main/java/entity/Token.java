@@ -44,6 +44,6 @@ public class Token {
         if (value instanceof Keyword) {
             return (Keyword) value;
         }
-        throw new RuntimeException("this is not a keyword token");
+        throw new RuntimeException("this is not a keyword token" + getValue());
     }
 }
